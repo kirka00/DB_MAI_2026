@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:18
+    container_name: hotel-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hotel
+    volumes:
+      - ./from_1/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./from_1/data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+      - ./from_1/migration.sql:/docker-entrypoint-initdb.d/03-migration.sql:ro
+      - ./seed.sql:/docker-entrypoint-initdb.d/04-seed.sql:ro
+      - ./:/sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "hotel"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  adminer:
+    image: adminer
+    container_name: hotel-adminer
+    environment:
+      ADMINER_DEFAULT_SERVER: hotel-db
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy

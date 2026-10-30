@@ -1,0 +1,89 @@
+@startuml er
+' plantuml -tpng er.pu
+' Схема ЛР №1 после migration.sql — на ней выполняется ЛР №2
+hide circle
+skinparam linetype ortho
+skinparam ranksep 80
+skinparam nodesep 60
+
+entity hotel {
+  hotel_id : bigint <<PK>>
+  --
+  name : text
+  city : text <<UQ(city, address)>>
+  address : text <<UQ(city, address)>>
+  stars : integer <<CHECK 1..5>>
+}
+
+entity room_type {
+  room_type_id : bigint <<PK>>
+  --
+  name : text <<UQ>>
+  capacity : integer «CHECK > 0»
+}
+
+entity room {
+  room_id : bigint <<PK>>
+  --
+  room_number : varchar(10) <<UQ(hotel_id, room_number)>>
+  price_per_night : numeric(10,2) «CHECK > 0»
+  --
+  hotel_id : bigint <<FK>> on delete cascade
+  room_type_id : bigint <<FK>> on delete restrict
+}
+
+entity guest {
+  guest_id : bigint <<PK>>
+  --
+  full_name : text
+  passport : varchar(20) <<UQ>>
+  email : text <<UQ>> (null)
+  phone : varchar(20)
+}
+
+entity orders {
+  order_id : bigint <<PK>>
+  --
+  created_dt : timestamptz
+  --
+  guest_id : bigint <<FK>> on delete restrict
+}
+
+entity booking {
+  booking_id : bigint <<PK>>
+  --
+  check_in : date
+  check_out : date «CHECK check_out > check_in»
+  price_per_night : numeric(10,2) «CHECK > 0»
+  status : varchar(12) <<CHECK in (...)>>
+  created_dt : timestamptz
+  --
+  order_id : bigint <<FK>> on delete restrict
+  room_id : bigint <<FK>> on delete restrict
+}
+
+entity booking_guest {
+  booking_id : bigint <<PK, FK>> on delete cascade
+  guest_id : bigint <<PK, FK>> on delete restrict
+}
+
+entity payment {
+  payment_id : bigint <<PK>>
+  --
+  amount : numeric(10,2) «CHECK > 0»
+  method : varchar(10) <<CHECK in (card, cash)>>
+  paid_dt : timestamptz
+  --
+  booking_id : bigint <<FK>> on delete restrict
+}
+
+hotel     ||--o{ room          : "имеет 1:N"
+room_type ||--o{ room          : "тип 1:N"
+room      ||--o{ booking       : "бронируется 1:N"
+guest     ||--o{ orders        : "оформляет 1:N"
+orders    ||--|{ booking       : "содержит 1:N"
+booking   ||--|{ booking_guest : "проживают"
+guest     ||--o{ booking_guest : "живёт"
+booking   ||--o{ payment       : "оплачивается 1:N"
+
+@enduml
